@@ -801,71 +801,54 @@ _HTML = r"""<!DOCTYPE html>
 
         /* 4 — captcha (fetch real) */
         const s4 = addStep(useVariations
-          ? 'Testando CPF recalculado…'
+          ? 'Testando variações…'
           : hasMask
           ? 'Aguardando contagem de candidatos…'
           : txtResolvendo);
 
         if (useVariations) {
-          /* caminho rápido: testa só o CPF com dígitos recalculados (variações[0]) */
-          const recalcCpf = variations[0]?.cpf_numeros;
-          let found = false;
-          if (recalcCpf) {
-            const fastRes  = await post('/consulta/cpf', {cpf: recalcCpf});
-            const fastData = await fastRes.json();
-            if (fastRes.ok && fastData.nome_certidao) {
-              const bate = !nome || nomeMatch(fastData.nome_certidao, nome);
-              if (bate) {
-                doneStep(s4, `CPF recalculado confirmado — ${txtResolvidos(1)}`);
-                resultados = [fastData];
-                found = true;
-              }
+          s4.querySelector('span:last-child').textContent = `Expandindo — 0/${totalCandidatos} variações…`;
+          const vresp = await fetch('/consulta/buscar-por-variacoes/stream', {
+            method: 'POST', signal,
+            headers: {'Content-Type': 'application/json', ...authH()},
+            body: JSON.stringify({cpf_parcial: cpf, nome, workers: 8}),
+          });
+          if (!vresp.ok) {
+            let msg = `Erro HTTP ${vresp.status}`;
+            try { const e = await vresp.json(); msg = e.detail || e.error || msg; } catch {}
+            const err = new Error(msg);
+            if (vresp.status === 429) err._retryAfter = parseInt(vresp.headers.get('Retry-After') || '60');
+            throw err;
+          }
+          const vreader = vresp.body.getReader();
+          const vdec = new TextDecoder();
+          let vbuf = '', vfinal = null;
+          vouter: while (true) {
+            const {done, value} = await vreader.read();
+            if (done) break;
+            vbuf += vdec.decode(value, {stream: true});
+            let boundary;
+            while ((boundary = vbuf.indexOf('\n\n')) !== -1) {
+              const chunk = vbuf.slice(0, boundary);
+              vbuf = vbuf.slice(boundary + 2);
+              if (!chunk.startsWith('data: ')) continue;
+              const evt = JSON.parse(chunk.slice(6));
+              if (evt.progress !== undefined) {
+                s4.querySelector('span:last-child').textContent = `${evt.progress}/${evt.total} variações testadas…`;
+              } else if (evt.match) {
+                liveMatches.push(evt.match); renderLive();
+              } else if (evt.done) {
+                vfinal = evt.result;
+                break vouter;
+              } else if (evt.error) { throw new Error(evt.error); }
             }
           }
-          if (!found) {
-            s4.querySelector('span:last-child').textContent = `Expandindo — 0/${totalCandidatos} variações…`;
-            const vresp = await fetch('/consulta/buscar-por-variacoes/stream', {
-              method: 'POST', signal,
-              headers: {'Content-Type': 'application/json', ...authH()},
-              body: JSON.stringify({cpf_parcial: cpf, nome, workers: 8}),
-            });
-            if (!vresp.ok) {
-              let msg = `Erro HTTP ${vresp.status}`;
-              try { const e = await vresp.json(); msg = e.detail || e.error || msg; } catch {}
-              const err = new Error(msg);
-              if (vresp.status === 429) err._retryAfter = parseInt(vresp.headers.get('Retry-After') || '60');
-              throw err;
-            }
-            const vreader = vresp.body.getReader();
-            const vdec = new TextDecoder();
-            let vbuf = '', vfinal = null;
-            vouter: while (true) {
-              const {done, value} = await vreader.read();
-              if (done) break;
-              vbuf += vdec.decode(value, {stream: true});
-              let boundary;
-              while ((boundary = vbuf.indexOf('\n\n')) !== -1) {
-                const chunk = vbuf.slice(0, boundary);
-                vbuf = vbuf.slice(boundary + 2);
-                if (!chunk.startsWith('data: ')) continue;
-                const evt = JSON.parse(chunk.slice(6));
-                if (evt.progress !== undefined) {
-                  s4.querySelector('span:last-child').textContent = `${evt.progress}/${evt.total} variações testadas…`;
-                } else if (evt.match) {
-                  liveMatches.push(evt.match); renderLive();
-                } else if (evt.done) {
-                  vfinal = evt.result;
-                  break vouter;
-                } else if (evt.error) { throw new Error(evt.error); }
-              }
-            }
-            if (!vfinal) throw new Error('Stream de variações encerrado sem resultado');
-            doneStep(s4, txtResolvidos(vfinal.consultados ?? totalCandidatos));
-            inexistentes = contaInexistentes(vfinal);
-            consultados  = vfinal.consultados ?? totalCandidatos;
-            interrompido = !!vfinal.interrompido;
-            resultados = liveMatches;
-          }
+          if (!vfinal) throw new Error('Stream de variações encerrado sem resultado');
+          doneStep(s4, txtResolvidos(vfinal.consultados ?? totalCandidatos));
+          inexistentes = contaInexistentes(vfinal);
+          consultados  = vfinal.consultados ?? totalCandidatos;
+          interrompido = !!vfinal.interrompido;
+          resultados = liveMatches;
         } else if (hasMask) {
           const mascara = rawCpf;
           const resp = await fetch('/consulta/buscar-por-mascara/stream', {

@@ -10,6 +10,12 @@
   outros 10 dígitos como digitados: `151.879.820-98` gera só `151.879.820-95`.
   A busca por variações consulta a fonte muito menos vezes para chegar ao
   mesmo resultado.
+- **A interface confirmava o CPF errado quando o dígito trocado estava na
+  base.** Ela consultava primeiro o CPF com os verificadores recalculados e,
+  sem nome informado, parava ali se houvesse certidão — `151.979.820-95`
+  virava `151.979.820-20`, de outra pessoa, sem testar `151.879.820-95`. Com
+  dois candidatos em média, o atalho deixou de compensar: todas as variações
+  são consultadas e todas as encontradas aparecem.
 
 ## v2.0.1
 
