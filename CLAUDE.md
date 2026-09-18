@@ -29,6 +29,30 @@ Testes manuais via:
 - FastAPI docs (apenas `ENV=development`): `http://localhost:8000/docs`
 - MCP transport: `http://localhost:8000/mcp` (streamable-http)
 
+## Dados reais nunca entram no repositório
+
+O repositório é público. CPF, nome ou certidão de pessoa real **não** vão para teste,
+fixture, exemplo de API, README, CHANGELOG nem mensagem de commit — inclusive o CPF que
+alguém informou para reproduzir um bug e a versão "corrigida" dele.
+
+- CPF de exemplo do projeto: `151.879.820-95`. Para um caso inválido, derive dele
+  (`151.879.820-98`, `151.979.820-95`)
+- Nome de exemplo: `FULANO DE TAL`
+- Antes de commitar, `git grep` pelo dado que foi usado na reprodução
+- Se vazar: reescrever o commit e `push --force-with-lease` antes que o release rode. O
+  commit antigo continua acessível pelo SHA no GitHub até o suporte purgar
+
+## Commits e release
+
+- Um commit por mudança, mensagem em português no padrão `fix:` / `fix(ui):` / `build:` /
+  `ci:` / `chore:`. Sem `Co-Authored-By` nem assinatura de ferramenta
+- Toda mudança é documentada no README (no padrão existente) e ganha entrada no
+  `CHANGELOG.md`, sob `## vX.Y.Z`
+- A versão vive em `app/main.py` (`version="X.Y.Z"`). Push no `master` → workflow `CI` →
+  workflow `Release`: se a tag `vX.Y.Z` ainda não existe, publica a imagem em
+  `ghcr.io/opastorello/cpf-validador` e cria a release com a seção da versão recortada do
+  CHANGELOG. **Subir a versão e dar push já é publicar**
+
 ## Arquitetura
 
 FastAPI (`app/main.py`) com routers REST + FastMCP 3.0 montado em `/mcp`. A camada `services/` não tem dependência de framework.
@@ -75,9 +99,9 @@ app/
 |------|-----------|
 | `validate_cpf` | Validação matemática via algoritmo módulo-11 |
 | `generate_valid_variations` | Gera variações válidas: recalcula dígitos, troca 1 dígito (mantendo os outros 10), transpõe pares adjacentes |
-| `check_cpf` | Consulta TRT3 — valida CPF, resolve CAPTCHA (CRNN), retorna resultado estruturado |
-| `find_cpf_by_mask` | Descobre CPF completo a partir de máscara com curingas — consulta TRT3 em paralelo |
-| `find_cpf_by_variations` | Gera candidatos de CPF parcial/errado e consulta TRT3 em paralelo, filtra por nome |
+| `check_cpf` | Consulta a fonte ativa — valida o CPF e retorna o resultado estruturado |
+| `find_cpf_by_mask` | Descobre CPF completo a partir de máscara com curingas — consulta a fonte ativa em paralelo |
+| `find_cpf_by_variations` | Gera candidatos de CPF parcial/errado e consulta a fonte ativa em paralelo, filtra por nome |
 | `check_multiple_cpfs` | Consulta lista de CPFs em paralelo, agrupa erros de validação separadamente |
 
 ### REST endpoints
@@ -112,6 +136,21 @@ Campos do retorno de consulta: `cpf`, `encontrado`, `nome_certidao`, `tem_regist
 - Separadores ignorados: `.` `-` `/` `\`, espaço, tab e espaço não-quebrável (colagem de PDF/web)
 - Máscaras de 9 ou 10 posições completam os dígitos verificadores com curinga
 - Caractere desconhecido → `ValueError` apontando o caractere (nunca descarte silencioso)
+
+### Variações de CPF
+`services/cpf.py::generate_valid_variations` modela **um** erro de digitação. Os candidatos,
+nesta ordem, são: o próprio CPF (se válido), o CPF com os verificadores recalculados, toda
+troca de 1 dígito em qualquer das 11 posições e toda transposição de par adjacente — só os
+que passam no módulo-11.
+
+- A troca de 1 dígito **mantém os outros 10 como digitados**. Nunca recalcule os
+  verificadores depois de trocar um dígito da base: toda base de 9 dígitos tem
+  verificadores válidos, então as 81 trocas passam sempre e o resultado vira 82 candidatos
+  a até 3 dígitos do CPF informado
+- O esperado é 1 a 8 candidatos (média ~2). `tests/test_mcp.py` trava isso
+- A interface consulta **todas** as variações pelo stream de `/consulta/buscar-por-variacoes`;
+  não há atalho que confirme o primeiro candidato com certidão — sem nome informado, isso
+  devolvia o CPF de outra pessoa
 
 ### Fontes de consulta
 `SOURCE` no .env escolhe quem responde "a quem pertence este CPF?". Registradas em
