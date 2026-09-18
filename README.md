@@ -25,7 +25,7 @@ Para confirmar a titularidade de um CPF, o sistema consulta o **TRT3** — que e
 | Tool | Descrição |
 | ---- | --------- |
 | `validate_cpf` | Valida matematicamente um CPF pelo algoritmo módulo-11 |
-| `generate_valid_variations` | Gera todas as variações válidas de um CPF com dígitos errados ou ilegíveis |
+| `generate_valid_variations` | Gera as variações válidas a um erro de digitação do CPF: verificadores recalculados, 1 dígito trocado ou par adjacente invertido |
 | `check_cpf` | Confirma titularidade de um CPF consultando o TRT3 |
 | `find_cpf_by_mask` | Descobre o CPF completo a partir de uma máscara com `*` nos dígitos desconhecidos |
 | `find_cpf_by_variations` | Dado um CPF parcial ou errado, encontra o correto filtrando pelo nome |

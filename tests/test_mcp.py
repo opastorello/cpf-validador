@@ -43,6 +43,20 @@ def test_generate_valid_variations():
     assert all(v["cpf_numeros"] for v in r["variations"])
 
 
+def test_variacoes_ficam_a_um_digito_do_informado():
+    # 151.879.820-98 tem só o último dígito errado. Recalcular os verificadores
+    # a cada troca na base aceitava as 81 trocas possíveis — 82 "variações".
+    r = generate_valid_variations("151.879.820-98")
+    assert [v["cpf_numeros"] for v in r["variations"]] == [CPF_LIMPO]
+
+
+def test_variacoes_recuperam_digito_errado_na_base():
+    # 151.979.820-95: o 4º dígito deveria ser 8
+    r = generate_valid_variations("151.979.820-95")
+    assert CPF_LIMPO in [v["cpf_numeros"] for v in r["variations"]]
+    assert r["total_variacoes"] < 10
+
+
 def test_generate_valid_variations_com_cpf_curto():
     assert "error" in generate_valid_variations("123")
 

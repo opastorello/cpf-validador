@@ -44,7 +44,7 @@ app = FastAPI(
         "**Autenticação:** quando `API_TOKEN` está configurado, todos os endpoints (exceto `/`) "
         "exigem `Authorization: Bearer <token>`. Use o botão **Authorize** acima para informar o token."
     ),
-    version="2.0.1",
+    version="2.0.2",
     lifespan=_mcp_app.lifespan,
     swagger_ui_parameters={"persistAuthorization": True},
 )

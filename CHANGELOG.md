@@ -1,5 +1,16 @@
 # Changelog
 
+## v2.0.2
+
+- **CPF com um dígito errado gerava 82 variações** em vez de uma ou duas. A
+  estratégia "troca 1 dígito" trocava um dígito da base e *recalculava* os
+  verificadores — e como toda base de 9 dígitos tem verificadores válidos, as
+  81 trocas possíveis passavam, produzindo candidatos a até 3 dígitos do CPF
+  informado. A troca agora vale para qualquer das 11 posições e mantém os
+  outros 10 dígitos como digitados: `151.879.820-98` gera só `151.879.820-95`.
+  A busca por variações consulta a fonte muito menos vezes para chegar ao
+  mesmo resultado.
+
 ## v2.0.1
 
 - **Token com caractere não-ASCII derrubava a rota com 500** em vez de devolver

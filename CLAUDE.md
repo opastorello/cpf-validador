@@ -74,7 +74,7 @@ app/
 | Tool | Descrição |
 |------|-----------|
 | `validate_cpf` | Validação matemática via algoritmo módulo-11 |
-| `generate_valid_variations` | Gera variações válidas: recalcula dígitos, troca 1 dígito, transpõe pares adjacentes |
+| `generate_valid_variations` | Gera variações válidas: recalcula dígitos, troca 1 dígito (mantendo os outros 10), transpõe pares adjacentes |
 | `check_cpf` | Consulta TRT3 — valida CPF, resolve CAPTCHA (CRNN), retorna resultado estruturado |
 | `find_cpf_by_mask` | Descobre CPF completo a partir de máscara com curingas — consulta TRT3 em paralelo |
 | `find_cpf_by_variations` | Gera candidatos de CPF parcial/errado e consulta TRT3 em paralelo, filtra por nome |

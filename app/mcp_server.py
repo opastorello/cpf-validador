@@ -26,7 +26,7 @@ def validate_cpf(cpf: str) -> dict:
 @mcp.tool
 def generate_valid_variations(cpf: str) -> dict:
     """Gera variações matematicamente válidas de um CPF possivelmente errado.
-    Estratégias: original, recalcula dígitos verificadores, troca 1 dígito (posições 0-8), transpõe pares adjacentes."""
+    Estratégias: original, recalcula dígitos verificadores, troca 1 dígito (qualquer das 11 posições, mantendo os demais), transpõe pares adjacentes."""
     result = _generate_valid_variations(cpf)
     if "error" in result:
         _m.mcp_calls_total.labels(tool="generate_valid_variations", result="invalid").inc()

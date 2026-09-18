@@ -153,13 +153,14 @@ def generate_valid_variations(cpf: str) -> dict:
         recalc = numeros[:9] + calcular_digitos(numeros[:9])
         add(recalc)
 
-    # swap one digit (positions 0-8 only to keep base, recalc check digits)
-    for i in range(9):
-        for d in "0123456789":
+    # swap one digit in any of the 11 positions, keeping the other 10 as typed.
+    # Recalculating the check digits here would accept every one of the 81 base
+    # swaps (any base has valid check digits) — candidates up to 3 digits away
+    # from the input, which is not a single-digit typo.
+    for i in range(11):
+        for d in _DIGITS:
             if d != numeros[i]:
-                candidate_base = numeros[:i] + d + numeros[i + 1:9]
-                candidate = candidate_base + calcular_digitos(candidate_base)
-                add(candidate)
+                add(numeros[:i] + d + numeros[i + 1:])
 
     # transpose adjacent digits
     for i in range(10):
